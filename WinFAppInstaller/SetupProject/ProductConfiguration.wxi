@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Include>
+  <!-- Setup Configuration -->
+  <?define InfoURL="https://acs-international.com/" ?>
+  <?define ProductName = "WinFApp" ?>
+  <?define ProductDescription = "Application for WinFApp" ?>
+  <?define ProductManufacturer = "My Company" ?>
+  <?define ProductUpgradeCode = "d644b832-587d-482f-a27c-4254b3751f44" ?>
+  <?define MainAppExecutable = "WinFApp.exe" ?>
+
+  <!-- Setup UI -->
+  <?define BannerBmpPath = \psffp02\DFS_Builds\Installation\Common\Miscellaneous\Wix_PSF_Banner8.bmp" ?>
+  <?define DialogBmpPath = "\psffp02\DFS_Builds\Installation\Common\Miscellaneous\Wix_PSF_Dialog.bmp" ?>
+  <?define IconPath = \\psffp02\DFS_Builds\Financials Logos & Icons\New program icons\PSF.ico" ?>
+  <?define BootstrapIconPath = "\psffp02\DFS_Builds\Financials Logos & Icons\New logo images\LogoFile.png" ?>
+
+  <!-- 32-bit / 64-bit variables -->
+  <?if $(var.Platform) = x64 ?>
+  <?define Win64 = "yes" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+  <?else ?>
+  <?define Win64 = "no" ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+  <?endif ?>
+
+</Include>

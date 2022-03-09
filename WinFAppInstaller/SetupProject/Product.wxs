@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <?include ProductConfiguration.wxi ?>
+  <Product Id="*"
+	         Name="$(var.ProductName)"
+	         Language="1033"
+	         Version="!(bind.FileVersion._application)"
+	         Manufacturer="$(var.ProductManufacturer)"
+	         UpgradeCode="$(var.ProductUpgradeCode)">
+
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+    <Property Id="ARPHELPLINK" Value="$(var.InfoURL)" />
+    <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+
+    <Icon Id="icon.ico" SourceFile="logo.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="icon.ico" />
+
+    <Upgrade Id="$(var.ProductUpgradeCode)">
+      <!--old versions that should be upgraded by the new .msi-->
+      <UpgradeVersion Minimum="1.0.0"
+			                IncludeMinimum="yes"
+			                Maximum="!(bind.FileVersion._application)"
+			                Property="OLDERVERSIONBEINGUPGRADED" />
+      <!--handle out-of-order installations (installing version 2 then trying to install version 1)-->
+      <UpgradeVersion Minimum="!(bind.FileVersion._application)"
+			                OnlyDetect="yes"
+			                Property="NEWERVERSIONDETECTED" />
+    </Upgrade>
+
+    <Condition Message="A later version of [ProductName] is already installed. Setup will now exit.">
+      NOT NEWERVERSIONDETECTED OR Installed
+    </Condition>
+
+    <!-- This is the main installer sequence run when the product is actually installed -->
+    <InstallExecuteSequence>
+      <!--Schedule the removal of old versions of the .msi-->
+      <RemoveExistingProducts Before='InstallInitialize' />
+      <!-- Determine the install location after the install path has been validated by the installer -->
+      <Custom Action="SetARPINSTALLLOCATION" After="InstallValidate"></Custom>
+      <!--<Custom Action='SetDataRootPath' After='InstallFiles'>NOT Installed AND NOT PATCH</Custom>-->
+    </InstallExecuteSequence>
+
+    <!-- Set up ARPINSTALLLOCATION property (http://blogs.technet.com/b/alexshev/archive/2008/02/09/from-msi-to-wix-part-2.aspx) -->
+    <CustomAction Id="SetARPINSTALLLOCATION" Property="ARPINSTALLLOCATION" Value="[INSTALLDIR]" />
+
+    <!-- Save the command line value INSTALLDIR and restore it later in the sequence or it will be overwritten by the value saved to the registry during an upgrade -->
+    <!-- http://robmensching.com/blog/posts/2010/5/2/the-wix-toolsets-remember-property-pattern/ -->
+    <CustomAction Id='SaveCmdLineValueINSTALLDIR' Property='CMDLINE_INSTALLDIR' Value='[INSTALLDIR]' Execute='firstSequence' />
+    <CustomAction Id='SetFromCmdLineValueINSTALLDIR' Property='INSTALLDIR' Value='[CMDLINE_INSTALLDIR]' Execute='firstSequence' />
+    <InstallUISequence>
+      <Custom Action='SaveCmdLineValueINSTALLDIR' Before='AppSearch' />
+      <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
+        CMDLINE_INSTALLDIR
+      </Custom>
+    </InstallUISequence>
+    <InstallExecuteSequence>
+      <Custom Action='SaveCmdLineValueINSTALLDIR' Before='AppSearch' />
+      <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
+        CMDLINE_INSTALLDIR
+      </Custom>
+    </InstallExecuteSequence>
+    <!-- Determine the directory of a previous installation (if one exists). If not INSTALLDIR stays empty -->
+    <Property Id="INSTALLDIR">
+      <RegistrySearch Id="DetermineInstallLocation" Type="raw" Root="HKLM"
+                      Key="Software\$(var.ProductManufacturer)\InstalledProducts\$(var.ProductName)" Name="InstallLocation" />
+    </Property>
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="$(var.ProductName)" Level="1" Description="$(var.ProductDescription)">
+      <ComponentGroupRef Id="FilesComponentGroup"/>
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+
+    <UI Id='Mondo'>
+      <UIRef Id="WixUI_Mondo" />
+      <UIRef Id="WixUI_ErrorProgressText" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="SetupTypeDlg"  Order="3">1</Publish>
+      <!-- skip the page on the way back too -->
+      <Publish Dialog="SetupTypeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg"  Order="3">1</Publish>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction"
+               Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+    </UI>
+    <!--<UI Id="MyWixUI_Mondo">
+			<UIRef Id="WixUI_Minimal" />
+			<Property Id="INSTALLLEVEL" Value="3" />
+		</UI>-->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="*">
+        <CreateFolder Directory="CompanyMenuFolder" />
+        <Shortcut Id="ApplicationStartMenuShortcut"
+				          Name="$(var.ProductName)"
+				          Description="$(var.ProductDescription)"
+				          Target="[INSTALLFOLDER]$(var.MainAppExecutable)"
+				          WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall"/>
+        <RemoveFolder Id="RemoveCompanyMenuFolder" Directory="CompanyMenuFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\$(var.ProductManufacturer)\InstalledProducts\$(var.ProductName)"
+                       Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Application" />
+    <Property Id="WixShellExecTarget" Value="[INSTALLFOLDER]$(var.MainAppExecutable)" />
+    <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+
+  </Product>
+
+  <!--Directory structure-->
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="CompanyMenuFolder" Name="$(var.ProductManufacturer)">
+          <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)"/>
+        </Directory>
+      </Directory>
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="CompanyMenuFolderInProgramFiles" Name="$(var.ProductManufacturer)">
+          <!--Installation folder for the main app-->
+          <Directory Id="INSTALLFOLDER" Name="$(var.ProductName)">
+            <Directory Id="ProductFilesComponentGroup"/>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+  </Fragment>
+</Wix>
