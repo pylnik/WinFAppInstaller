@@ -15,6 +15,7 @@
     <MyFinalFolder Condition=" '$(MyFinalFolder)' == '' ">..\WinFApp\bin\Debug</MyFinalFolder>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DefineConstants>Debug;FinalFolder=$(MyFinalFolder)</DefineConstants>
+    <SuppressSpecificWarnings>82;</SuppressSpecificWarnings>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <OutputPath>bin\$(Configuration)\</OutputPath>
@@ -25,6 +26,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Product.wxs" />
+    <Compile Include="ui\FA_ExitDialog.wxs" />
+    <Compile Include="ui\FA_Minimal.wxs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="FilterMainAppFolder.xsl" />
@@ -41,6 +44,19 @@
       <Name>WixUIExtension</Name>
     </WixExtension>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WinFApp.CA\WinFApp.CA.csproj">
+      <Name>WinFAppCA</Name>
+      <Project>{80e61125-94b7-4f4f-9a57-ac95a9ba07d4}</Project>
+      <Private>True</Private>
+      <DoNotHarvest>True</DoNotHarvest>
+      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
+      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(WixTargetsPath)" Condition=" '$(WixTargetsPath)' != '' " />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets" Condition=" '$(WixTargetsPath)' == '' AND Exists('$(MSBuildExtensionsPath32)\Microsoft\WiX\v3.x\Wix.targets') " />
   <Target Name="EnsureWixToolsetInstalled" Condition=" '$(WixTargetsImported)' != 'true' ">
@@ -49,7 +65,7 @@
   <Target Name="BeforeBuild">
     <ItemGroup>
       <HarvestDirectory Include="$(MyFinalFolder)">
-        <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+        <DirectoryRefId>INSTALLDIR</DirectoryRefId>
         <SuppressRootDirectory>true</SuppressRootDirectory>
         <SuppressCom>true</SuppressCom>
         <SuppressRegistry>true</SuppressRegistry>
